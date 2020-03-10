@@ -9,10 +9,7 @@ import 'package:purebook/service/TelAndSmsService.dart';
 import 'package:purebook/store/Store.dart';
 import 'package:purebook/view/BookShelf.dart';
 import 'package:purebook/view/Me.dart';
-import 'package:purebook/view/PersonCenter.dart';
 import 'package:purebook/view/Search.dart';
-
-import 'event/event.dart';
 
 GetIt locator = GetIt.instance;
 
@@ -77,15 +74,12 @@ class _MainPageState extends State<MainPage> {
    * 存储的四个页面，和Fragment一样
    */
   var _pages = [BookShelf(), Search(), Me()];
-  final GlobalKey<ScaffoldState> _scaffoldKey = new GlobalKey();
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: PersonCenter(),
-      ),
-      key: _scaffoldKey,
+
       body: PageView.builder(
           //要点1
           physics: NeverScrollableScrollPhysics(),
@@ -113,21 +107,5 @@ class _MainPageState extends State<MainPage> {
     });
   }
 
-  @override
-  void initState() {
-    // TODO: implement initState
-    eventBus.on<BooksEvent>().listen((BooksEvent booksEvent) => closeDrawer());
-    eventBus.on<OpenEvent>().listen((OpenEvent openEvent) => openDrawer());
-    eventBus
-        .on<SyncShelfEvent>()
-        .listen((SyncShelfEvent booksEvent) => closeDrawer());
-  }
 
-  closeDrawer() {
-    _scaffoldKey.currentState.openEndDrawer();
-  }
-
-  openDrawer() {
-    _scaffoldKey.currentState.openDrawer();
-  }
 }

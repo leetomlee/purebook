@@ -11,11 +11,7 @@ import 'package:purebook/entity/BookInfo.dart';
 import 'package:purebook/event/event.dart';
 import 'package:purebook/model/ShelfModel.dart';
 import 'package:purebook/store/Store.dart';
-import 'package:purebook/view/MySearchDelegate.dart';
 import 'package:purebook/view/ReadBook.dart';
-import 'package:purebook/view/Search.dart';
-
-var map = {0: "我的书架", 1: "排行榜", 2: "我的"};
 
 class BookShelf extends StatefulWidget {
   BookShelf();
@@ -38,73 +34,56 @@ class _BookShelfState extends State<BookShelf>
     super.build(context);
     // TODO: implement build
     return Scaffold(
-      appBar: AppBar(
-//        leading: IconButton(
-//          icon: ImageIcon(
-//            AssetImage("images/account.png"),
-//          ),
-//          onPressed: () {
-//            eventBus.fire(OpenEvent(''));
-//          },
-//        ),
-        elevation: 0,
-        title: Text(
-          '书架',
-          style: TextStyle(
-            fontSize: 18,
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          elevation: 0,
+          title: Text(
+            '书架',
+            style: TextStyle(
+              fontSize: 18,
+            ),
           ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-//        actions: <Widget>[
-//          IconButton(
-//              icon: Icon(Icons.search),
-//              tooltip: '搜索小说',
-//              onPressed: () {
-//                Navigator.of(context).push( MaterialPageRoute(
-//                    builder: (BuildContext context) => Search()));
-//              }),
-//        ],
-      ),
-      body: Store.connect<ShelfModel>(
-          builder: (context, ShelfModel model, child) => SmartRefresher(
-              enablePullDown: true,
-              header: WaterDropHeader(),
-              footer: CustomFooter(
-                builder: (BuildContext context, LoadStatus mode) {
-                  if (mode == LoadStatus.idle) {
-                  } else if (mode == LoadStatus.loading) {
-                    body = CupertinoActivityIndicator();
-                  } else if (mode == LoadStatus.failed) {
-                    body = Text("加载失败！点击重试！");
-                  } else if (mode == LoadStatus.canLoading) {
-                    body = Text("松手,加载更多!");
-                  } else {
-                    body = Text("到底了!");
-                  }
-                  return Center(
-                    child: body,
-                  );
-                },
-              ),
-              controller: _refreshController,
-              onRefresh: freshShelf,
-              child: ListView.builder(
-                  itemCount: model.shelf.length,
-                  itemBuilder: (context, i) {
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        model.shelf[i].NewChapterCount = 0;
-                        Book temp = model.shelf[i];
-                        model.upTotop(temp);
-                        Navigator.of(context).push( MaterialPageRoute(
-                            builder: (BuildContext context) => ReadBook(
-                                BookInfo.id(temp.Id, temp.Name, temp.Img))));
-                      },
-                      child: getBookItemView(model.shelf[i]),
+        body: Store.connect<ShelfModel>(
+            builder: (context, ShelfModel model, child) => SmartRefresher(
+                enablePullDown: true,
+                header: WaterDropHeader(),
+                footer: CustomFooter(
+                  builder: (BuildContext context, LoadStatus mode) {
+                    if (mode == LoadStatus.idle) {
+                    } else if (mode == LoadStatus.loading) {
+                      body = CupertinoActivityIndicator();
+                    } else if (mode == LoadStatus.failed) {
+                      body = Text("加载失败！点击重试！");
+                    } else if (mode == LoadStatus.canLoading) {
+                      body = Text("松手,加载更多!");
+                    } else {
+                      body = Text("到底了!");
+                    }
+                    return Center(
+                      child: body,
                     );
-                  }))),
-    );
+                  },
+                ),
+                controller: _refreshController,
+                onRefresh: freshShelf,
+                child: ListView.builder(
+                    itemCount: model.shelf.length,
+                    itemBuilder: (context, i) {
+                      return GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          model.shelf[i].NewChapterCount = 0;
+                          Book temp = model.shelf[i];
+                          model.upTotop(temp);
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (BuildContext context) => ReadBook(
+                                  BookInfo.id(temp.Id, temp.Name, temp.Img))));
+                        },
+                        child: getBookItemView(model.shelf[i]),
+                      );
+                    }))));
   }
 
 //刷新书架
@@ -267,8 +246,12 @@ class _BookShelfState extends State<BookShelf>
         var name = SpUtil.getString(Common.listbookname);
         List decode2 = json.decode(name);
         List<Book> bks = decode2.map((m) => Book.fromJson(m)).toList();
+
         Store.value<ShelfModel>(context).shelf = bks;
         Store.value<ShelfModel>(context).context = context;
+        if (mounted) {
+          setState(() {});
+        }
       }
     });
   }

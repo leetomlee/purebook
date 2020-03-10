@@ -20,94 +20,84 @@ class _RegisterState extends State<Register> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        elevation: 0,
-        title: Text(
-          '账号注册',
-        ),
-        centerTitle: true,
+    return Material(child: Container(
+      alignment: Alignment.center,
+      child: new ListView(
+        shrinkWrap: true,
+        padding: EdgeInsets.only(left: 24.0, right: 24.0),
+        children: <Widget>[
+          TextFormField(
+            keyboardType: TextInputType.phone,
+            autofocus: false,
+            decoration: InputDecoration(
+              hintText: '账号',
+              contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+//                border: OutlineInputBorder(
+//                    borderRadius: BorderRadius.circular(32.0)),
+            ),
+            onChanged: (String value) {
+              this.name = value;
+            },
+          ),
+          SizedBox(height: 8.0),
+          TextFormField(
+            autofocus: false,
+            obscureText: true,
+            decoration: InputDecoration(
+              hintText: '密码',
+              contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+//                border: OutlineInputBorder(
+//                    borderRadius: BorderRadius.circular(32.0)),
+            ),
+            onChanged: (String value) {
+              pwd = value;
+            },
+          ),
+          SizedBox(height: 8.0),
+          TextFormField(
+            autofocus: false,
+            obscureText: true,
+            decoration: InputDecoration(
+              hintText: '重复密码',
+              contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+//                border: OutlineInputBorder(
+//                    borderRadius: BorderRadius.circular(32.0)),
+            ),
+            onChanged: (String value) {
+              repassword = value;
+            },
+          ),
+          SizedBox(height: 8.0),
+          TextFormField(
+            keyboardType: TextInputType.emailAddress,
+            autofocus: false,
+            decoration: InputDecoration(
+              hintText: '邮箱 找回密码的唯一凭证,请谨慎输入...',
+              contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
+//                border: OutlineInputBorder(
+//                    borderRadius: BorderRadius.circular(32.0)),
+            ),
+            onChanged: (String value) {
+              email = value;
+            },
+          ),
+          SizedBox(height: 8.0),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 16.0),
+            child: RaisedButton(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              onPressed: () {
+                register();
+              },
+              padding: EdgeInsets.all(12),
+              child: Text('注册'),
+            ),
+          )
+        ],
       ),
-      key: _scaffoldkey,
-      body: new Container(
-        alignment: Alignment.center,
-        child: new ListView(
-          shrinkWrap: true,
-          padding: EdgeInsets.only(left: 24.0, right: 24.0),
-          children: <Widget>[
-            TextFormField(
-              keyboardType: TextInputType.phone,
-              autofocus: false,
-              decoration: InputDecoration(
-                hintText: '账号',
-                contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-//                border: OutlineInputBorder(
-//                    borderRadius: BorderRadius.circular(32.0)),
-              ),
-              onChanged: (String value) {
-                this.name = value;
-              },
-            ),
-            SizedBox(height: 8.0),
-            TextFormField(
-              autofocus: false,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: '密码',
-                contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-//                border: OutlineInputBorder(
-//                    borderRadius: BorderRadius.circular(32.0)),
-              ),
-              onChanged: (String value) {
-                pwd = value;
-              },
-            ),
-            SizedBox(height: 8.0),
-            TextFormField(
-              autofocus: false,
-              obscureText: true,
-              decoration: InputDecoration(
-                hintText: '重复密码',
-                contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-//                border: OutlineInputBorder(
-//                    borderRadius: BorderRadius.circular(32.0)),
-              ),
-              onChanged: (String value) {
-                repassword = value;
-              },
-            ),
-            SizedBox(height: 8.0),
-            TextFormField(
-              keyboardType: TextInputType.emailAddress,
-              autofocus: false,
-              decoration: InputDecoration(
-                hintText: '邮箱 找回密码的唯一凭证,请谨慎输入...',
-                contentPadding: EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 10.0),
-//                border: OutlineInputBorder(
-//                    borderRadius: BorderRadius.circular(32.0)),
-              ),
-              onChanged: (String value) {
-                email = value;
-              },
-            ),
-            SizedBox(height: 8.0),
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 16.0),
-              child: RaisedButton(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                onPressed: () {
-                  register();
-                },
-                padding: EdgeInsets.all(12),
-                child: Text('注册'),
-              ),
-            )
-          ],
-        ),
-      ),
-    );
+    ),);
   }
 
   register() async {

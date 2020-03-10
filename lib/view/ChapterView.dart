@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:purebook/event/event.dart';
 import 'package:purebook/model/ReadModel.dart';
 import 'package:purebook/store/Store.dart';
 
@@ -80,7 +81,6 @@ class _ChapterViewItem extends State<ChapterView> {
                   itemBuilder: (context, index) {
                     var title = data.bookTag.chapters[index].name;
                     var has = data.bookTag.chapters[index].hasContent;
-
                     return ListTile(
                       title: Text(
                         title,
@@ -94,7 +94,7 @@ class _ChapterViewItem extends State<ChapterView> {
                       onTap: () async {
                         //不是卷目录
                         Navigator.of(context).pop();
-                        await data.chapterToRead(index);
+                        eventBus.fire(new ChapterEvent(index));
                       },
                     );
                   },
@@ -103,10 +103,8 @@ class _ChapterViewItem extends State<ChapterView> {
               ),
               floatingActionButton: FloatingActionButton(
                   backgroundColor: Theme.of(context).primaryColor,
-
                   onPressed: topOrBottom,
                   child: Icon(
-
                     showToTopBtn ? Icons.arrow_upward : Icons.arrow_downward,
                   )),
             ));

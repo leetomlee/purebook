@@ -1,7 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:extended_image/extended_image.dart';
+import 'package:flustars/flustars.dart';
 import 'package:flutter/material.dart';
-import 'package:purebook/common/Rating.dart';
+import 'package:purebook/common/RatingBar.dart';
 import 'package:purebook/common/common.dart';
 import 'package:purebook/common/toast.dart';
 import 'package:purebook/common/util.dart';
@@ -89,15 +90,18 @@ class _BookDetailState extends State<BookDetail>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: <Widget>[
                         Container(
+                          width: ScreenUtil.getScreenW(context) - 120,
                           padding: const EdgeInsets.only(left: 20.0, top: 5.0),
                           child: Text(
                             _bookInfo.Name,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(fontSize: 15),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.only(left: 20.0, top: 2.0),
                           child: Text('作者: ${_bookInfo.Author}',
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(fontSize: 12)),
                         ),
                         Container(
@@ -106,7 +110,6 @@ class _BookDetailState extends State<BookDetail>
                               overflow: TextOverflow.ellipsis,
                               maxLines: 2,
                               style: TextStyle(fontSize: 12)),
-                          width: 270,
                         ),
                         Container(
                           padding: const EdgeInsets.only(left: 20.0, top: 2.0),
@@ -121,13 +124,21 @@ class _BookDetailState extends State<BookDetail>
                                 left: 15.0, top: 2.0, bottom: 10.0),
                             child: Row(
                               children: <Widget>[
-                                Rating(
-                                    initialRating:
-//                                      _bookInfo.BookVote.Score.toInt(),
-                                        2),
-                                Text(
-//                                  '${_bookInfo.BookVote.Score}分',
-                                    '2分')
+                                RatingBar(
+                                  initialRating: _bookInfo.Rate ?? 0.0,
+                                  minRating: 1,
+                                  direction: Axis.horizontal,
+                                  allowHalfRating: true,
+                                  itemCount: 5,
+                                  itemSize: 25,
+                                  itemPadding:
+                                      EdgeInsets.symmetric(horizontal: 1.0),
+                                  itemBuilder: (context, _) => Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                  ),
+                                ),
+                                Text('${_bookInfo.Rate ?? 0.0}分')
                               ],
                             )),
                       ],
@@ -178,9 +189,48 @@ class _BookDetailState extends State<BookDetail>
                     ),
                     ListTile(
                       trailing: Icon(Icons.keyboard_arrow_right),
-                      leading: Icon(Icons.update),
+                      leading: Container(
+                        width: 70,
+                        child: Row(
+                          children: <Widget>[
+                            Icon(Icons.access_time),
+                            SizedBox(
+                              width: 5,
+                            ),
+                            Text('最新')
+                          ],
+                        ),
+                      ),
                       title: Text(
-                        '最新: ' + _bookInfo.LastChapter,
+                        _bookInfo.LastChapter,
+                        style: TextStyle(fontSize: 15),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      onTap: () {
+                        //标志是从书的最后一章开始看
+                        _bookInfo.CId = "-1";
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (BuildContext context) =>
+                                ReadBook(_bookInfo)));
+                      },
+                    ),
+                    ListTile(
+                      trailing: Icon(Icons.keyboard_arrow_right),
+                      leading: Container(
+                        width: 70,
+                        child: Row(
+                          children: <Widget>[
+                            Icon(Icons.menu),
+                            SizedBox(
+                              width: 5,
+                            ),
+                            Text('目录')
+                          ],
+                        ),
+                      ),
+                      title: Text(
+                        '共${_bookInfo.Count?.toString() ?? 0}章',
                         style: TextStyle(fontSize: 15),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -250,10 +300,14 @@ class _BookDetailState extends State<BookDetail>
 
                                     children: <Widget>[
                                       Container(
+                                          width:
+                                              ScreenUtil.getScreenW(context) -
+                                                  120,
                                           padding: const EdgeInsets.only(
                                               left: 10.0, top: 10.0),
                                           child: Text(
                                             _bookInfo.SameAuthorBooks[i].Name,
+                                            overflow: TextOverflow.ellipsis,
                                             style: TextStyle(fontSize: 18.0),
                                           )),
                                       Container(
@@ -266,6 +320,8 @@ class _BookDetailState extends State<BookDetail>
                                         ),
                                       ),
                                       Container(
+                                        width: ScreenUtil.getScreenW(context) -
+                                            120,
                                         padding: const EdgeInsets.only(
                                             left: 10.0, top: 10.0),
                                         child: Text(
@@ -286,11 +342,12 @@ class _BookDetailState extends State<BookDetail>
                                   '/${_bookInfo.SameAuthorBooks[i].Id}';
                               Response future =
                                   await Util(context).http().get(url);
-                              var data = future.data['data'];
-                              BookInfo bookInfo = BookInfo.fromJson(data);
-                              Navigator.of(context).push(new MaterialPageRoute(
-                                  builder: (BuildContext context) =>
-                                      BookDetail(bookInfo)));
+                              var d = future.data['data'];
+                              BookInfo bookInfo = BookInfo.fromJson(d);
+                              Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => BookDetail(bookInfo)));
                             },
                           );
                         },

@@ -46,7 +46,6 @@ class _PersonCenter extends State<PersonCenter>
           },
         ),
       ),
-
     ]);
 
     return Scaffold(
@@ -82,9 +81,15 @@ class Login extends StatelessWidget {
         SpUtil.putString('username', username);
         SpUtil.putBool('login', true);
         SpUtil.putString("auth", response.headers.value("auth"));
-        //书架同步
-//        Store.value<ShelfModel>(context).refreshShelf();
         eventBus.fire(new SyncShelfEvent(""));
+
+        //书架同步
+        var shelf2 = Store.value<ShelfModel>(context).shelf;
+        if (shelf2.length > 0) {
+          for (var value in shelf2) {
+            Util(null).http().get(Common.bookAction + '/${value.Id}/add');
+          }
+        }
         Navigator.pop(context);
       }
     }
@@ -170,7 +175,9 @@ class Login extends StatelessWidget {
     // TODO: implement build
 
     return Material(
-      child: loginBody,
+      child: Container(
+        child: loginBody,
+      ),
     );
   }
 }

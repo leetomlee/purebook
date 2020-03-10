@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/material.dart';
+import 'package:purebook/common/common.dart';
 import 'package:purebook/common/toast.dart';
 
 import 'LoadDialog.dart';
@@ -16,6 +17,11 @@ class Util {
     var dic = DirectoryUtil.getAppDocPath();
     _dio.interceptors
         .add(InterceptorsWrapper(onRequest: (RequestOptions options) async {
+      if (options.path.startsWith(Common.bookAction)) {
+        if (!SpUtil.haveKey("auth")) {
+          this.http().reject("用户尚未登录");
+        }
+      }
       // Do something before request is sent
       if (_buildContext != null) {
 //        showDialog(
@@ -51,17 +57,38 @@ class Util {
       return response; // continue
     }, onError: (DioError e) async {
       // Do something with response error
-      if (e.type == DioErrorType.CONNECT_TIMEOUT) {
-        Navigator.pop(_buildContext);
-        Toast.show('服务器响应超时,请重试');
-      } else {
-        if (_buildContext != null) {
-          Navigator.pop(_buildContext);
-          Toast.show('oppos!!!');
-        }
-      }
+      formatError(e);
       return e; //continue
     }));
     return _dio;
+  }
+
+  /*
+   * error统一处理
+   */
+  void formatError(DioError e) {
+    if(_buildContext!=null){
+      Navigator.pop(_buildContext);
+    }
+    
+    if (e.type == DioErrorType.CONNECT_TIMEOUT) {
+      // It occurs when url is opened timeout.
+      Toast.show("连接超时");
+    } else if (e.type == DioErrorType.SEND_TIMEOUT) {
+      // It occurs when url is sent timeout.
+      Toast.show("请求超时");
+    } else if (e.type == DioErrorType.RECEIVE_TIMEOUT) {
+      //It occurs when receiving timeout
+      Toast.show("响应超时");
+    } else if (e.type == DioErrorType.RESPONSE) {
+      // When the server response, but with a incorrect status, such as 404, 503...
+      Toast.show("出现异常");
+    } else if (e.type == DioErrorType.CANCEL) {
+      // When the request is cancelled, dio will throw a error with this type.
+      Toast.show("请求取消");
+    } else {
+      //DEFAULT Default error type, Some other Error. In this case, you can read the DioError.error if it is not null.
+      Toast.show("未知错误");
+    }
   }
 }

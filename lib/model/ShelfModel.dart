@@ -94,7 +94,7 @@ class ShelfModel with ChangeNotifier {
         shelf.map((f) => f.Id).toList().contains(book.Id) ? 'del' : 'add';
     if (action == "add") {
       Toast.show('已添加到书架');
-      shelf.add(book);
+      shelf.insert(0,book);
     } else if (action == "del") {
       for (var i = 0; i < shelf.length; i++) {
         if (shelf[i].Id == book.Id) {

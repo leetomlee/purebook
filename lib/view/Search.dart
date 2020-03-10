@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
@@ -32,6 +33,7 @@ class _SearchState extends State<Search> with AutomaticKeepAliveClientMixin {
       appBar: AppBar(
         title: buildSearchWidget(),
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: Store.connect<SearchModel>(
           builder: (context, SearchModel data, child) =>
@@ -61,7 +63,6 @@ class _SearchState extends State<Search> with AutomaticKeepAliveClientMixin {
               builder: (context, ColorModel data, child) => Container(
                   //修饰黑色背景与圆角
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white, width: 1.0),
                     //灰色的一层边框
                     color: data.dark ? Colors.black : Colors.white,
                     borderRadius: BorderRadius.all(Radius.circular(25.0)),
@@ -90,6 +91,9 @@ class _SearchState extends State<Search> with AutomaticKeepAliveClientMixin {
                     ),
                   ))),
           flex: 5,
+        ),
+        SizedBox(
+          width: 5,
         ),
         Expanded(
           child: Center(
@@ -166,9 +170,11 @@ class _SearchState extends State<Search> with AutomaticKeepAliveClientMixin {
 
                   children: <Widget>[
                     Container(
+                      width: ScreenUtil.getScreenW(context) - 120,
                       padding: const EdgeInsets.only(left: 10.0, top: 10.0),
-                      child: new Text(
+                      child: Text(
                         searchModel.bks[i].Name,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(fontSize: 15),
                       ),
                     ),
@@ -187,7 +193,7 @@ class _SearchState extends State<Search> with AutomaticKeepAliveClientMixin {
                           style: TextStyle(
                             fontSize: 12,
                           )),
-                      width: 270,
+                      width: ScreenUtil.getScreenW(context) - 120,
                     ),
                   ],
                 ),
@@ -196,10 +202,11 @@ class _SearchState extends State<Search> with AutomaticKeepAliveClientMixin {
             onTap: () async {
               String url = Common.detail + '/${searchModel.bks[i].Id}';
               Response future = await Util(context).http().get(url);
-              var data = future.data['data'];
-              BookInfo bookInfo = new BookInfo.fromJson(data);
-              Navigator.of(context).push(new MaterialPageRoute(
-                  builder: (BuildContext context) => BookDetail(bookInfo)));
+
+              var d = future.data['data'];
+              BookInfo b = BookInfo.fromJson(d);
+              Navigator.of(context).push(MaterialPageRoute(
+                  builder: (BuildContext context) => BookDetail(b)));
             },
           );
         },
@@ -227,6 +234,10 @@ class _SearchState extends State<Search> with AutomaticKeepAliveClientMixin {
               )
             ],
           ),
+//          ListView(
+//            shrinkWrap: true,
+//            children: data.getHistory(),
+//          ),
           Wrap(
             children: data.getHistory(),
             spacing: 3, //主轴上子控件的间距

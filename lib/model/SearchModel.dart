@@ -16,6 +16,7 @@ class SearchModel with ChangeNotifier {
   int page = 1;
   int size = 10;
   var word = "";
+  var temp = "";
   RefreshController refreshController =
       RefreshController(initialRefresh: false);
   TextEditingController controller;
@@ -23,6 +24,13 @@ class SearchModel with ChangeNotifier {
   List<Color> colors = Colors.accents;
 
   getSearchData() async {
+    if (temp == "") {
+      temp = word;
+    } else {
+      if (temp != word) {
+        page = 1;
+      }
+    }
     //收起键盘
     FocusScope.of(context).requestFocus(FocusNode());
     var ctx;
@@ -63,33 +71,69 @@ class SearchModel with ChangeNotifier {
   }
 
   List<Widget> getHistory() {
-
     List<Widget> wds = [];
     for (var value in searchHistory) {
       wds.add(GestureDetector(
         onTap: () {
           word = value;
-          controller.text=value;
+          controller.text = value;
           search(value);
           notifyListeners();
         },
         child: Container(
+          margin: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.white, width: 1.0), //灰色的一层边框
-            color: colors[Random().nextInt(colors.length)],
-            borderRadius: BorderRadius.all(Radius.circular(25.0)),
-          ),
-          alignment: Alignment.center,
-          width: 80,
-          child: Center(
-            child: Text(
-              value,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+              color: colors[Random().nextInt(colors.length)],
+              borderRadius: BorderRadius.all(Radius.circular(5))),
+          child: Container(
+            margin: EdgeInsets.all(8),
+            child: Text(value),
           ),
         ),
       ));
+//      wds.add(GestureDetector(
+//        onTap: () {
+//          word = value;
+//          controller.text = value;
+//          search(value);
+//          notifyListeners();
+//        },
+////        child: Card(
+////          shape: const RoundedRectangleBorder(
+////              borderRadius: BorderRadius.all(Radius.circular(14.0))),
+////          color: colors[Random().nextInt(colors.length)],
+////          child: ListTile(
+////            leading: Icon(Icons.history),
+////            title: Text(value),
+////            trailing: IconButton(
+////              icon: Icon(Icons.close),
+////              onPressed: () {
+////                searchHistory.remove(value);
+////                notifyListeners();
+////              },
+////            ),
+////          ),
+////        ),
+//        child: Container(
+//          decoration: BoxDecoration(
+//            border: Border.all(color: Colors.white, width: 1.0), //灰色的一层边框
+//            color: colors[Random().nextInt(colors.length)],
+//            borderRadius: BorderRadius.all(Radius.circular(25.0)),
+//          ),
+//          alignment: Alignment.center,
+//          width: 100,
+////          constraints: BoxConstraints(
+////            minWidth: 180,
+////          ),
+//          child: Center(
+//            child: Text(
+//              value,
+//              maxLines: 1,
+//              overflow: TextOverflow.ellipsis,
+//            ),
+//          ),
+//        ),
+//      ));
     }
 
     return wds;
@@ -129,7 +173,8 @@ class SearchModel with ChangeNotifier {
       return;
     }
     word = "";
-    toggleShowResult();
+    page = 1;
+    showResult = false;
     notifyListeners();
   }
 
@@ -138,7 +183,7 @@ class SearchModel with ChangeNotifier {
       return;
     }
     bks = [];
-    toggleShowResult();
+    showResult = true;
     word = w;
     await getSearchData();
     setHistory(w);

@@ -11,12 +11,12 @@ import '../main.dart';
 import 'PersonCenter.dart';
 
 class Me extends StatelessWidget {
-  getItem(item) {
-    return Padding(
-      padding: EdgeInsets.only(top: 5),
-      child: Container(
-        child: item,
-      ),
+  Widget getItem(imagIcon, text, func) {
+    return ListTile(
+      onTap: func,
+      leading: imagIcon,
+      title: Text(text),
+      trailing: Icon(Icons.keyboard_arrow_right),
     );
   }
 
@@ -98,38 +98,26 @@ class Me extends StatelessWidget {
         ),
       ),
       body: Container(
+        width: ScreenUtil.getScreenW(context),
         child: Padding(
           padding: EdgeInsets.only(right: 5, left: 5),
-          child: Column(
+          child: ListView(
+            shrinkWrap: true,
             children: <Widget>[
-              getItem(Store.connect<ColorModel>(
-                  builder: (context, ColorModel data, child) => ListTile(
-                        trailing: Icon(
-                          Icons.keyboard_arrow_right,
-                        ),
-                        leading: CircleAvatar(
-                          child: ImageIcon(data.dark
-                              ? AssetImage("images/moon.png")
-                              : AssetImage("images/sun.png")),
-                        ),
-                        title: Text(
-                          data.dark ? '夜间模式' : '日间模式',
-                        ),
-                        onTap: () {
+              Store.connect<ColorModel>(
+                  builder: (context, ColorModel data, child) => getItem(
+                        ImageIcon(data.dark
+                            ? AssetImage("images/moon.png")
+                            : AssetImage("images/sun.png")),
+                        data.dark ? '夜间模式' : '日间模式',
+                        () {
                           data.switchModel();
                         },
-                      ))),
-              getItem(ListTile(
-                leading: CircleAvatar(
-                  child: ImageIcon(AssetImage("images/re.png")),
-                ),
-                title: Text(
-                  '免责声明',
-                ),
-                trailing: Icon(
-                  Icons.keyboard_arrow_right,
-                ),
-                onTap: () {
+                      )),
+              getItem(
+                ImageIcon(AssetImage("images/re.png")),
+                '免责声明',
+                () {
                   showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -169,18 +157,11 @@ class Me extends StatelessWidget {
                             ],
                           ));
                 },
-              )),
-              getItem(ListTile(
-                trailing: Icon(
-                  Icons.keyboard_arrow_right,
-                ),
-                leading: CircleAvatar(
-                  child: ImageIcon(AssetImage("images/co.png")),
-                ),
-                title: Text(
-                  '交流联系',
-                ),
-                onTap: () {
+              ),
+              getItem(
+                ImageIcon(AssetImage("images/co.png")),
+                '交流联系',
+                () {
                   showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -220,48 +201,27 @@ class Me extends StatelessWidget {
                             ],
                           ));
                 },
-              )),
-              getItem(ListTile(
-                trailing: Icon(
-                  Icons.keyboard_arrow_right,
-                ),
-                leading: CircleAvatar(
-                  child: ImageIcon(AssetImage("images/skin.png")),
-                ),
-                title: Text(
-                  '换肤',
-                ),
-                onTap: () {
+              ),
+              getItem(
+                ImageIcon(AssetImage("images/skin.png")),
+                '换肤',
+                () {
                   Navigator.of(context).push(MaterialPageRoute(
                       builder: (BuildContext context) => Skin()));
                 },
-              )),
-              getItem(ListTile(
-                trailing: Icon(
-                  Icons.keyboard_arrow_right,
-                ),
-                leading: CircleAvatar(
-                  child: ImageIcon(AssetImage("images/fe.png")),
-                ),
-                title: Text(
-                  '意见反馈',
-                ),
-                onTap: () {
+              ),
+              getItem(
+                ImageIcon(AssetImage("images/fe.png")),
+                '意见反馈',
+                () {
                   locator<TelAndSmsService>()
                       .sendEmail('leetomlee123@gmail.com');
                 },
-              )),
-              getItem(ListTile(
-                trailing: Icon(
-                  Icons.keyboard_arrow_right,
-                ),
-                leading: CircleAvatar(
-                  child: ImageIcon(AssetImage("images/ab.png")),
-                ),
-                title: Text(
-                  '关于',
-                ),
-                onTap: () {
+              ),
+              getItem(
+                ImageIcon(AssetImage("images/ab.png")),
+                '关于',
+                () {
                   showDialog(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -281,8 +241,8 @@ class Me extends StatelessWidget {
                             ],
                           ));
                 },
-              )),
-              getItem(SpUtil.haveKey('login')
+              ),
+              SpUtil.haveKey('login')
                   ? Row(
                       children: <Widget>[
                         Expanded(
@@ -298,7 +258,7 @@ class Me extends StatelessWidget {
                         )
                       ],
                     )
-                  : Container()),
+                  : Container(),
             ],
           ),
         ),

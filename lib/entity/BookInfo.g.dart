@@ -5,19 +5,24 @@ part of 'BookInfo.dart';
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
+double td(String s) {
+  if (!s.contains('.')) {
+    s = s + '.0';
+  }
+  return double.parse(s);
+}
 
 BookInfo _$BookInfoFromJson(Map<String, dynamic> json) {
   return BookInfo(
+      json['Count'] as int,
       json['Author'] as String,
       json['BookStatus'] as String,
-      json['BookVote'] == null
-          ? null
-          : BookVotec.fromJson(json['BookVote'] as Map<String, dynamic>),
       json['CId'] as String,
       json['CName'] as String,
       json['Id'] as String,
       json['Name'] as String,
       json['Img'] as String,
+      td(json['Rate'].toString()) as double,
       json['Desc'] as String,
       json['LastChapterId'] as String,
       json['LastChapter'] as String,
@@ -30,13 +35,14 @@ BookInfo _$BookInfoFromJson(Map<String, dynamic> json) {
 }
 
 Map<String, dynamic> _$BookInfoToJson(BookInfo instance) => <String, dynamic>{
+      'Count': instance.Count,
       'Author': instance.Author,
       'BookStatus': instance.BookStatus,
-      'BookVote': instance.BookVote,
       'CId': instance.CId,
       'CName': instance.CName,
       'Id': instance.Id,
       'Name': instance.Name,
+      'Rate': instance.Rate,
       'Img': instance.Img,
       'Desc': instance.Desc,
       'LastChapterId': instance.LastChapterId,

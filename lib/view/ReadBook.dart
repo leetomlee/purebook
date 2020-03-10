@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:dio/dio.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
@@ -46,6 +44,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
     [242, 228, 228],
   ];
   final GlobalKey<ScaffoldState> _globalKey = new GlobalKey();
+  MyPageController pageController = new MyPageController();
 
   @override
   void dispose() {
@@ -67,11 +66,13 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
     eventBus
         .on<PageEvent>()
         .listen((PageEvent data) => readModel.changePage(data.page));
-
+    eventBus
+        .on<ChapterEvent>()
+        .listen((ChapterEvent data) => readModel.chapterToRead(data.chapterId));
     var widgetsBinding = WidgetsBinding.instance;
     widgetsBinding.addPostFrameCallback((callback) {
       readModel = Store.value<ReadModel>(context);
-
+      readModel.pageController = pageController;
       readModel.bookInfo = this.widget._bookInfo;
       readModel.context = context;
       readModel.getBookRecord();
@@ -145,7 +146,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
           builder: (context, ReadModel data, child) => Scaffold(
                 key: _globalKey,
                 backgroundColor: Store.value<ColorModel>(context).dark
-                    ? Color.fromRGBO(38, 38, 38, 1)
+                    ? Color.fromRGBO(102, 102, 102, 1)
                     : Color.fromRGBO(bgs[data.bgIdx][0], bgs[data.bgIdx][1],
                         bgs[data.bgIdx][2], 1),
                 drawer: Drawer(
@@ -173,7 +174,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                               ),
                               Container(
                                 height: readModel.contentH,
-                                child: data.bookTag.content.isNotEmpty
+                                child: data.bookTag.content != null
                                     ? MyPageView.builder(
                                         controller: data.pageController,
                                         physics:
@@ -188,7 +189,12 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                         onPageChanged: (i) =>
                                             data.onPageChange(i),
                                       )
-                                    : Container(),
+                                    : GestureDetector(
+                                        child: Container(),
+                                        onTap: () {
+                                          data.toggleShowMenu();
+                                        },
+                                      ),
                               ),
                               Container(
                                 height: 30,
@@ -285,9 +291,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                                     width: 70,
                                                   ),
                                                   onTap: () {
-                                                    data.bookTag.index = 0;
-                                                    data.bookTag.cur -= 1;
-                                                    data.loadChapter(0);
+                                                    data.preChapter();
                                                   },
                                                 ),
                                                 Expanded(
@@ -329,9 +333,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                                     width: 70,
                                                   ),
                                                   onTap: () {
-                                                    data.bookTag.index = 0;
-                                                    data.bookTag.cur += 1;
-                                                    data.loadChapter(0);
+                                                    data.nextChapter();
                                                   },
                                                 ),
                                               ],
@@ -354,7 +356,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
     List<Widget> contents = [];
     for (var i = 0; i < readModel.bookTag.pageOffsets.length; i++) {
       var content = readModel.bookTag.stringAtPageIndex(i).trim();
-//log(content);
+
       contents.add(
         GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -371,6 +373,9 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
               child: Text(
                 content,
                 style: TextStyle(
+                  color: Store.value<ColorModel>(context).dark
+                      ? Color.fromRGBO(225, 225, 225, 1)
+                      : Colors.black,
                   fontSize: readModel.fontSize / Screen.textScaleFactor,
                 ),
               )),
@@ -386,10 +391,10 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: <Widget>[
                 buildBottomItem('目录', Icons.menu),
-//        buildBottomItem('亮度', Icons.wb_sunny),
-//        buildBottomItem('字体', Icons.font_download),
                 GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     child: Container(
+                      width: ScreenUtil.getScreenW(context) / 4,
                       padding: EdgeInsets.symmetric(vertical: 7),
                       child: Column(
                         children: <Widget>[
@@ -406,9 +411,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                       Store.value<ColorModel>(context).switchModel();
                       readModel.toggleShowMenu();
                     }),
-
                 buildBottomItem('缓存', Icons.cloud_download),
-
                 buildBottomItem('设置', Icons.settings),
               ],
             ));
@@ -416,7 +419,9 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
 
   buildBottomItem(String title, IconData iconData) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       child: Container(
+        width: ScreenUtil.getScreenW(context) / 4,
         padding: EdgeInsets.symmetric(vertical: 7),
         child: Column(
           children: <Widget>[
@@ -427,6 +432,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
         ),
       ),
       onTap: () {
+        print(title.toString());
         switch (title) {
           case '目录':
             {

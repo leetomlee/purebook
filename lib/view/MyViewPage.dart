@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'dart:async';
+import 'dart:developer';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show precisionErrorTolerance;
@@ -296,8 +297,10 @@ class PageScrollPhysics extends ScrollPhysics {
     if ((velocity <= 0.0 && position.pixels <= position.minScrollExtent) ||
         (velocity >= 0.0 && position.pixels >= position.maxScrollExtent)) {
       if (velocity > 0) {
+        log('next chapter');
         eventBus.fire(PageEvent(1));
       } else if (velocity < 0) {
+        log('pre chapter');
         eventBus.fire(PageEvent(-1));
       }
       return super.createBallisticSimulation(position, velocity);

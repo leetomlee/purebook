@@ -6,4 +6,4 @@
 ![image](https://github.com/leetomlee123/purebook/blob/master/readme/5.jpg)
 ![image](https://github.com/leetomlee123/purebook/blob/master/readme/6.jpg)
 ![image](https://github.com/leetomlee123/purebook/blob/master/readme/7.jpg)
-![image](https://github.com/leetomlee123/purebook/blob/master/readme/8.jpg)
+![image](https://github.com/leetomlee123/purebook/blob/master/readme/8.png)

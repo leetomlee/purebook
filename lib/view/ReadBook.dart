@@ -3,19 +3,17 @@ import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/painting.dart';
-import 'package:purebook/common/Screen.dart';
+import 'package:flutter/rendering.dart';
 import 'package:purebook/common/common.dart';
 import 'package:purebook/common/toast.dart';
 import 'package:purebook/common/util.dart';
 import 'package:purebook/entity/Book.dart';
 import 'package:purebook/entity/BookInfo.dart';
-import 'package:purebook/event/event.dart';
 import 'package:purebook/model/ColorModel.dart';
 import 'package:purebook/model/ReadModel.dart';
 import 'package:purebook/model/ShelfModel.dart';
 import 'package:purebook/store/Store.dart';
 import 'package:purebook/view/ChapterView.dart';
-import 'package:purebook/view/MyViewPage.dart';
 import 'package:purebook/view/myBottomSheet.dart';
 
 import 'BookDetail.dart';
@@ -44,7 +42,6 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
     [242, 228, 228],
   ];
   final GlobalKey<ScaffoldState> _globalKey = new GlobalKey();
-  MyPageController pageController = new MyPageController();
 
   @override
   void dispose() {
@@ -63,16 +60,10 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    eventBus
-        .on<PageEvent>()
-        .listen((PageEvent data) => readModel.changePage(data.page));
-    eventBus
-        .on<ChapterEvent>()
-        .listen((ChapterEvent data) => readModel.chapterToRead(data.chapterId));
+
     var widgetsBinding = WidgetsBinding.instance;
     widgetsBinding.addPostFrameCallback((callback) {
       readModel = Store.value<ReadModel>(context);
-      readModel.pageController = pageController;
       readModel.bookInfo = this.widget._bookInfo;
       readModel.context = context;
       readModel.getBookRecord();
@@ -142,247 +133,151 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
         }
         return true;
       },
-      child: Store.connect<ReadModel>(
-          builder: (context, ReadModel data, child) => Scaffold(
-                key: _globalKey,
-                backgroundColor: Store.value<ColorModel>(context).dark
-                    ? Color.fromRGBO(102, 102, 102, 1)
-                    : Color.fromRGBO(bgs[data.bgIdx][0], bgs[data.bgIdx][1],
-                        bgs[data.bgIdx][2], 1),
-                drawer: Drawer(
-                  child: ChapterView(),
-                ),
-                body: readModel == null
-                    ? Container()
-                    : Stack(
-                        children: <Widget>[
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+      child: readModel != null
+          ? Scaffold(
+              key: _globalKey,
+              backgroundColor: Store.value<ColorModel>(context).dark
+                  ? Color.fromRGBO(102, 102, 102, 1)
+                  : Color.fromRGBO(bgs[readModel.bgIdx][0],
+                      bgs[readModel.bgIdx][1], bgs[readModel.bgIdx][2], 1),
+              drawer: Drawer(
+                child: ChapterView(),
+              ),
+              body: Stack(
+                children: <Widget>[
+                  readModel.readView(),
+                  readModel.showMenu
+                      ? Container(
+                          color: Colors.transparent,
+                          child: Column(
                             children: <Widget>[
-                              SizedBox(
-                                  height: ScreenUtil.getStatusBarH(context)),
                               Container(
-                                height: 30,
-                                padding: EdgeInsets.only(left: 3),
-                                child: Text(
-                                  data.bookTag.chapters.length > 0
-                                      ? data.bookTag.chapters[data.bookTag.cur]
-                                          .name
-                                      : '',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                              Container(
-                                height: readModel.contentH,
-                                child: data.bookTag.content != null
-                                    ? MyPageView.builder(
-                                        controller: data.pageController,
-                                        physics:
-                                            AlwaysScrollableScrollPhysics(),
-                                        itemBuilder:
-                                            (BuildContext context, int index) {
-                                          return getContent()[index];
-                                        },
-                                        //条目个数
-                                        itemCount:
-                                            data.bookTag.pageOffsets.length,
-                                        onPageChanged: (i) =>
-                                            data.onPageChange(i),
-                                      )
-                                    : GestureDetector(
-                                        child: Container(),
-                                        onTap: () {
-                                          data.toggleShowMenu();
-                                        },
-                                      ),
-                              ),
-                              Container(
-                                height: 30,
-                                padding: EdgeInsets.only(right: 8),
-                                child: Row(
-                                  children: <Widget>[
-                                    Expanded(child: Container()),
-                                    Text(
-                                      data.bookTag.pageOffsets == null
-                                          ? ''
-                                          : '第${data.bookTag.index + 1}/${data.bookTag.pageOffsets.length}页',
-                                      style: TextStyle(fontSize: 13),
-                                      textAlign: TextAlign.center,
-                                    ),
+                                child: AppBar(
+                                  title: Text(
+                                      '${readModel.bookTag.bookName ?? ""}'),
+                                  centerTitle: true,
+                                  leading: IconButton(
+                                    icon: Icon(Icons.arrow_back),
+                                    onPressed: () {
+                                      readModel.toggleShowMenu();
+                                    },
+                                  ),
+                                  elevation: 0,
+                                  actions: <Widget>[
+                                    IconButton(
+                                      icon: Icon(Icons.info),
+                                      onPressed: () async {
+                                        String url = Common.detail +
+                                            '/${readModel.bookInfo.Id}';
+                                        Response future =
+                                            await Util(context).http().get(url);
+                                        var d = future.data['data'];
+                                        BookInfo bookInfo =
+                                            BookInfo.fromJson(d);
+
+                                        Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                                builder:
+                                                    (BuildContext context) =>
+                                                        BookDetail(bookInfo)));
+                                      },
+                                    )
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
-                          data.showMenu
-                              ? Container(
-                                  color: Colors.transparent,
-                                  child: Column(
-                                    children: <Widget>[
-                                      Container(
-                                        child: AppBar(
-                                          title: Text('${data.bookTag.name}'),
-                                          centerTitle: true,
-                                          leading: IconButton(
-                                            icon: Icon(Icons.arrow_back),
-                                            onPressed: () {
-                                              data.toggleShowMenu();
-                                            },
-                                          ),
-                                          elevation: 0,
-                                          actions: <Widget>[
-                                            IconButton(
-                                              icon: Icon(Icons.info),
-                                              onPressed: () async {
-                                                String url = Common.detail +
-                                                    '/${data.bookInfo.Id}';
-                                                Response future =
-                                                    await Util(context)
-                                                        .http()
-                                                        .get(url);
-                                                var d = future.data['data'];
-                                                BookInfo bookInfo =
-                                                    BookInfo.fromJson(d);
-
-                                                Navigator.of(context).push(
-                                                    MaterialPageRoute(
-                                                        builder: (BuildContext
-                                                                context) =>
-                                                            BookDetail(
-                                                                bookInfo)));
-                                              },
-                                            )
-                                          ],
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          child: Opacity(
-                                            opacity: 1,
-                                            child: Container(
-                                              width: double.infinity,
-                                            ),
+                              Expanded(
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Opacity(
+                                    opacity: 1,
+                                    child: Container(
+                                      width: double.infinity,
+                                    ),
+                                  ),
+                                  onTap: () {
+                                    readModel.toggleShowMenu();
+                                    if (readModel.font) {
+                                      readModel.reCalcPages();
+                                    }
+                                  },
+                                ),
+                              ),
+                              Container(
+                                color: Theme.of(context).primaryColor,
+                                height: 120,
+                                width: double.infinity,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: <Widget>[
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: <Widget>[
+                                        GestureDetector(
+                                          child: Container(
+                                            child: Icon(Icons.arrow_back_ios),
+                                            width: 70,
                                           ),
                                           onTap: () {
-                                            data.toggleShowMenu();
-                                            if (data.font) {
-                                              data.reCalcPages();
-                                            }
+                                            readModel.bookTag.cur -= 1;
+                                            readModel.intiPageContent(
+                                                readModel.bookTag.cur);
                                           },
                                         ),
-                                      ),
-                                      Container(
-                                        color: Theme.of(context).primaryColor,
-                                        height: 120,
-                                        width: double.infinity,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: <Widget>[
-                                            Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .spaceBetween,
-                                              children: <Widget>[
-                                                GestureDetector(
-                                                  child: Container(
-                                                    child: Icon(
-                                                        Icons.arrow_back_ios),
-                                                    width: 70,
-                                                  ),
-                                                  onTap: () {
-                                                    data.preChapter();
-                                                  },
-                                                ),
-                                                Expanded(
-                                                  child: Container(
-                                                    child: Slider(
-                                                      activeColor:
-                                                          Colors.black38,
-                                                      inactiveColor:
-                                                          Colors.white30,
-                                                      value: data.value,
-                                                      max: (data
-                                                                  .bookTag
-                                                                  .chapters
-                                                                  .length -
-                                                              1)
-                                                          .toDouble(),
-                                                      min: 0.0,
-                                                      onChanged: (newValue) {
-                                                        int temp =
-                                                            newValue.round();
-                                                        data.bookTag.cur = temp;
-                                                        data.value =
-                                                            temp.toDouble();
-                                                        data.loadChapter(1);
-                                                      },
-                                                      label:
-                                                          '${data.bookTag.chapters[data.bookTag.cur].name} ',
-                                                      semanticFormatterCallback:
-                                                          (newValue) {
-                                                        return '${newValue.round()} dollars';
-                                                      },
-                                                    ),
-                                                  ),
-                                                ),
-                                                GestureDetector(
-                                                  child: Container(
-                                                    child: Icon(Icons
-                                                        .arrow_forward_ios),
-                                                    width: 70,
-                                                  ),
-                                                  onTap: () {
-                                                    data.nextChapter();
-                                                  },
-                                                ),
-                                              ],
+                                        Expanded(
+                                          child: Container(
+                                            child: Slider(
+                                              activeColor: Colors.black38,
+                                              inactiveColor: Colors.white30,
+                                              value: readModel.value,
+                                              max: (readModel.bookTag.chapters
+                                                          .length -
+                                                      1)
+                                                  .toDouble(),
+                                              min: 0.0,
+                                              onChanged: (newValue) {
+                                                int temp = newValue.round();
+                                                readModel.bookTag.cur = temp;
+                                                readModel.value =
+                                                    temp.toDouble();
+                                                readModel.intiPageContent(
+                                                    readModel.bookTag.cur);
+                                              },
+                                              label:
+                                                  '${readModel.bookTag.chapters[readModel.bookTag.cur].name} ',
+                                              semanticFormatterCallback:
+                                                  (newValue) {
+                                                return '${newValue.round()} dollars';
+                                              },
                                             ),
-                                            buildBottomMenus()
-                                          ],
+                                          ),
                                         ),
-                                      )
-                                    ],
-                                  ),
-                                )
-                              : Container()
-                        ],
-                      ),
-              )),
+                                        GestureDetector(
+                                          child: Container(
+                                            child:
+                                                Icon(Icons.arrow_forward_ios),
+                                            width: 70,
+                                          ),
+                                          onTap: () {
+                                            readModel.bookTag.cur += 1;
+                                            readModel.intiPageContent(
+                                                readModel.bookTag.cur);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                    buildBottomMenus()
+                                  ],
+                                ),
+                              )
+                            ],
+                          ),
+                        )
+                      : Container()
+                ],
+              ))
+          : Scaffold(),
     );
-  }
-
-  getContent() {
-    List<Widget> contents = [];
-    for (var i = 0; i < readModel.bookTag.pageOffsets.length; i++) {
-      var content = readModel.bookTag.stringAtPageIndex(i).trim();
-
-      contents.add(
-        GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (TapDownDetails details) {
-            readModel.tapPage(context, details);
-          },
-          child: Container(
-              padding: EdgeInsets.only(
-                right: 10,
-                left: 15,
-              ),
-              height: double.infinity,
-              width: double.infinity,
-              child: Text(
-                content,
-                style: TextStyle(
-                  color: Store.value<ColorModel>(context).dark
-                      ? Color.fromRGBO(225, 225, 225, 1)
-                      : Colors.black,
-                  fontSize: readModel.fontSize / Screen.textScaleFactor,
-                ),
-              )),
-        ),
-      );
-    }
-    return contents;
   }
 
   buildBottomMenus() {

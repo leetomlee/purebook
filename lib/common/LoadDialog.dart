@@ -7,10 +7,10 @@ class LoadingDialog extends Dialog {
     //创建透明层
     return Center(
         child: Container(
-          width: 150,
-          height: 150,
+          width: 300,
+          height: 300,
           child: SpinKitCircle(
-            color: Colors.blue,
+            color: Theme.of(context).primaryColor,
             size: 50,
           ),
         ));

@@ -1,27 +1,38 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:dio/dio.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:purebook/common/LoadDialog.dart';
 import 'package:purebook/common/ReaderPageAgent.dart';
+import 'package:purebook/common/Screen.dart';
 import 'package:purebook/common/common.dart';
 import 'package:purebook/common/toast.dart';
 import 'package:purebook/common/util.dart';
 import 'package:purebook/entity/BookInfo.dart';
 import 'package:purebook/entity/BookTag.dart';
 import 'package:purebook/entity/Chapter.dart';
-import 'package:purebook/view/MyViewPage.dart';
+import 'package:purebook/entity/ReadPage.dart';
+import 'package:purebook/store/Store.dart';
+
+import '../main.dart';
+import 'ColorModel.dart';
 
 class ReadModel with ChangeNotifier {
   BookInfo bookInfo;
 
   //本书记录
   BookTag bookTag;
+  ReadPage prePage;
+  ReadPage curPage;
+  ReadPage nextPage;
+  List<Widget> allContent = [];
 
   //页面控制器
-  MyPageController pageController;
+  PageController pageController;
 
   //章节slider value
   double value;
@@ -51,9 +62,6 @@ class ReadModel with ChangeNotifier {
   //页面上下文
   BuildContext context;
 
-  //页面显示标志
-  bool fix = true;
-
 //是否修改font
   bool font = false;
 
@@ -62,33 +70,57 @@ class ReadModel with ChangeNotifier {
     showMenu = false;
     if (SpUtil.haveKey(bookInfo.Id)) {
       bookTag = BookTag.fromJson(jsonDecode(SpUtil.getString(bookInfo.Id)));
-      //slider value
-      value = bookTag.cur.toDouble();
-      if (bookTag.index > bookTag.pageOffsets.length) {
-        bookTag.index = bookTag.pageOffsets.length;
-      }
       //书的最后一章
       if (bookInfo.CId == "-1") {
         bookTag.cur = bookTag.chapters.length - 1;
-        value = bookTag.cur.toDouble();
       }
-//      await getChapters();
-//      pageController = MyPageController(initialPage: bookTag.index);
-//      notifyListeners();
+      getChapters();
+      intiPageContent(bookTag.cur);
+      pageController = PageController(initialPage: bookTag.index);
+      value = bookTag.cur.toDouble();
+      notifyListeners();
       //本书已读过
     } else {
-      bookTag = BookTag.name();
+      bookTag = BookTag.bookName(bookInfo.Name);
       if (SpUtil.haveKey('${bookInfo.Id}chapters')) {
         var string = SpUtil.getString('${bookInfo.Id}chapters');
         List v = jsonDecode(string);
         bookTag.chapters = v.map((f) => Chapter.fromJson(f)).toList();
       }
-      bookTag.name = bookInfo.Name;
-//      pageController = MyPageController(initialPage: 0);
-
+      pageController = PageController(initialPage: 0);
+      getChapters().then((_) {
+        if (bookInfo.CId == "-1") {
+          bookTag.cur = bookTag.chapters.length - 1;
+        }
+        intiPageContent(bookTag.cur);
+      });
     }
-    await asyncInit();
+  }
+
+  Future intiPageContent(int idx) async {
+    showGeneralDialog(
+      context: context,
+      barrierLabel: "",
+      barrierDismissible: true,
+      transitionDuration: Duration(milliseconds: 300),
+      pageBuilder: (BuildContext context, Animation animation,
+          Animation secondaryAnimation) {
+        return LoadingDialog();
+      },
+    );
+    prePage = await loadChapter(idx - 1);
+    curPage = await loadChapter(idx);
+    nextPage = await loadChapter(idx + 1);
+    print('refresh ok');
+    fillAllContent();
     value = bookTag.cur.toDouble();
+    int ix = prePage?.pageOffsets?.length ?? 0;
+    print(ix);
+    if (pageController.hasClients) {
+      pageController.jumpToPage(ix);
+    }
+    Navigator.pop(context);
+    notifyListeners();
   }
 
   toggleShowMenu() {
@@ -102,19 +134,20 @@ class ReadModel with ChangeNotifier {
   }
 
   Future getChapters() async {
-    var url = Common.chaptersUrl + '/${bookInfo.Id}/${bookTag.chapters.length}';
+    var url = Common.chaptersUrl +
+        '/${bookInfo.Id}/${bookTag?.chapters?.length ?? 0}';
     var ctx;
     if (bookTag.chapters.length == 0 && context != null) {
       ctx = context;
       Toast.show('加载目录...');
     }
     Response response = await Util(ctx).http().get(url);
-    log('chapters init ok');
+    print('chapters init ok');
     List data = response.data['data'];
     if (data == null) {
       return;
     }
-    log(data.length.toString());
+    print(data.length.toString());
     List<Chapter> list = data.map((c) => Chapter.fromJson(c)).toList();
     bookTag.chapters.addAll(list);
     //书的最后一章
@@ -124,56 +157,182 @@ class ReadModel with ChangeNotifier {
     }
   }
 
-  getChapter(int idx, bool pagination) async {
+  Future<ReadPage> loadChapter(int idx) async {
+    if (idx < 0 || idx >= bookTag.chapters.length) {
+      print(idx);
+      return null;
+    }
+    ReadPage r = new ReadPage();
+    r.chapterName = bookTag.chapters[idx].name;
     String id = bookTag.chapters[idx].id;
     if (!SpUtil.haveKey(id)) {
-      var url = Common.bookContentUrl + '/$id';
+      String url = Common.bookContentUrl + '/$id';
+      print(id);
 
-      Response response =
-          await Util(pagination ? context : null).http().get(url);
-      bookTag.content = response.data['data']['content'].toString().trim();
+      Response v = await Util(null).http().get(url);
+      print('white cache success');
+      r.chapterContent = v.data['data']['content'].toString().trim();
       //缓存章节
-      SpUtil.putString(id, bookTag.content);
+      SpUtil.putString(id, r.chapterContent);
       //缓存章节分页
-      if (pagination) {
-        bookTag.pageOffsets = ReaderPageAgent.getPageOffsets(
-            bookTag.content, contentH, contentW, fontSize);
-        SpUtil.putString('pages' + id, bookTag.pageOffsets.join('-'));
-      }
-
+      r.pageOffsets = ReaderPageAgent.getPageOffsets(
+          r.chapterContent, contentH, contentW, fontSize);
+      SpUtil.putString('pages' + id, r.pageOffsets.join('-'));
       bookTag.chapters[idx].hasContent = 2;
-    }
-  }
-
-  Future<void> asyncInit() async {
-    log('chapters init start');
-    await getChapters();
-
-    if (bookTag.content == null) {
-      log('chapter init start');
-      await loadChapter(1);
-    }
-  }
-
-  chapterToRead(index) {
-    bookTag.cur = index;
-    bookTag.index = 0;
-    loadChapter(1);
-  }
-
-  loadChapter(flag) async {
-    //flage =g
-    if (flag == 1) {
-      //f g  g==1 forward =0 back
-      getBookChapter(1, 1);
-      //预加载下一章
-      getBookChapter(0, 1);
     } else {
-      getBookChapter(1, 0);
-      //预加载上一章
-      getBookChapter(0, 0);
+      r.chapterContent = SpUtil.getString(id);
+      if (SpUtil.haveKey('pages' + id)) {
+        r.pageOffsets = SpUtil.getString('pages' + id)
+            .split('-')
+            .map((f) => int.parse(f))
+            .toList();
+      } else {
+        r.pageOffsets = ReaderPageAgent.getPageOffsets(
+            r.chapterContent, contentH, contentW, fontSize);
+      }
     }
-    value = bookTag.cur.toDouble();
+    return r;
+  }
+
+  List<Widget> chapterContent(ReadPage r) {
+    List<Widget> contents = [];
+    for (var i = 0; i < r.pageOffsets.length; i++) {
+      var content = r.stringAtPageIndex(i).trim();
+      contents.add(
+        GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (TapDownDetails details) {
+              tapPage(context, details);
+            },
+            child: Container(
+              child: Column(
+                children: <Widget>[
+                  SizedBox(height: ScreenUtil.getStatusBarH(context)),
+                  Container(
+                    height: 30,
+                    padding: EdgeInsets.only(left: 3),
+                    child: Text(
+                      r.chapterName,
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Store.value<ColorModel>(context).dark
+                            ? Color.fromRGBO(225, 225, 225, 1)
+                            : Colors.black,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                        padding: EdgeInsets.only(
+                          right: 10,
+                          left: 15,
+                        ),
+                        child: Text(
+                          content,
+                          style: TextStyle(
+                            color: Store.value<ColorModel>(context).dark
+                                ? Color.fromRGBO(225, 225, 225, 1)
+                                : Colors.black,
+                            fontSize: fontSize / Screen.textScaleFactor,
+                          ),
+                        )),
+                  ),
+                  Container(
+                    height: 30,
+                    padding: EdgeInsets.only(right: 8),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(child: Container()),
+                        Text(
+                          '第${i + 1}/${r.pageOffsets.length}页',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Store.value<ColorModel>(context).dark
+                                ? Color.fromRGBO(225, 225, 225, 1)
+                                : Colors.black,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              width: double.infinity,
+              height: double.infinity,
+            )),
+      );
+    }
+    return contents;
+  }
+
+  fillAllContent() {
+    allContent = [];
+    if (prePage != null) {
+      allContent.addAll(chapterContent(prePage));
+    }
+    if (curPage != null) {
+      allContent.addAll(chapterContent(curPage));
+    }
+    if (nextPage != null) {
+      allContent.addAll(chapterContent(nextPage));
+    }
+  }
+
+  Widget readView() {
+    return PageView.builder(
+      controller: pageController,
+      physics: AlwaysScrollableScrollPhysics(),
+      itemBuilder: (BuildContext context, int index) {
+        return allContent[index];
+      },
+      //条目个数
+      itemCount: (prePage == null ? 0 : prePage.pageOffsets.length) +
+          (curPage == null ? 0 : curPage.pageOffsets.length) +
+          (nextPage == null ? 0 : nextPage.pageOffsets.length),
+      onPageChanged: (idx) => changeChapter(idx),
+    );
+  }
+
+  changeChapter(int idx) async {
+    bookTag.index = idx;
+    int preLen = prePage == null ? 0 : prePage.pageOffsets.length;
+    int curLen = curPage == null ? 0 : curPage.pageOffsets.length;
+    if ((idx + 1 - preLen) > (curLen)) {
+      int temp = bookTag.cur + 1;
+      if (temp >= bookTag.chapters.length) {
+        return;
+      } else {
+        bookTag.cur += 1;
+        prePage = curPage;
+        curPage = nextPage;
+        nextPage = await loadChapter(bookTag.cur + 1);
+        print("next chapter");
+        fillAllContent();
+        pageController.jumpToPage(prePage.pageOffsets.length);
+        print(prePage.chapterName + curPage.chapterName + nextPage.chapterName);
+      }
+    } else if (idx < preLen) {
+      print("pre chapter");
+      int temp = bookTag.cur - 1;
+      if (temp < 0) {
+        return;
+      } else {
+        bookTag.cur -= 1;
+        nextPage = curPage;
+        curPage = prePage;
+        prePage = await loadChapter(bookTag.cur - 1);
+        print("pre chapter");
+        fillAllContent();
+        int ix =
+            prePage?.pageOffsets?.length ?? 0 + curPage.pageOffsets.length - 1;
+        print(ix);
+        pageController.jumpToPage(ix);
+//        notifyListeners();
+      }
+    }
   }
 
   justDown(start, end) async {
@@ -186,6 +345,7 @@ class ReadModel with ChangeNotifier {
         var url = Common.bookContentUrl + '/$id';
         Response response = await Util(null).http().get(url);
         String content = response.data['data']['content'].toString().trim();
+        print('dark cache success');
         //缓存章节
         SpUtil.putString(id, content);
         //缓存章节分页
@@ -206,111 +366,14 @@ class ReadModel with ChangeNotifier {
     }
     bookTag.index = 0;
     SpUtil.remove('pages${bookTag.chapters[bookTag.cur].id}');
-    loadChapter(1);
-    notifyListeners();
-  }
-
-//f 1 加载  g 1 前进
-  getBookChapter(f, g) async {
-    //f==0 是预加载
-    if (f == 0) {
-      int temp = 0;
-      if (g == 1) {
-        temp = bookTag.cur + 1;
-      } else {
-        temp = bookTag.cur - 1;
-      }
-      justDown(temp, temp + 1);
-    } else {
-      //上一章 需要显示 不是第一章
-      int i = bookTag.cur;
-      String id = bookTag.chapters[i].id;
-      if (SpUtil.haveKey(id)) {
-        bookTag.content = SpUtil.getString(id);
-        if (SpUtil.haveKey('pages' + id)) {
-          bookTag.pageOffsets =
-              SpUtil.getString('pages' + bookTag.chapters[i].id)
-                  .split('-')
-                  .map((f) => int.parse(f))
-                  .toList();
-        } else {
-          bookTag.pageOffsets = ReaderPageAgent.getPageOffsets(
-              bookTag.content, contentH, contentW, fontSize);
-        }
-      } else {
-        await getChapter(i, true);
-      }
-      if (g == 0 && bookTag.cur > 0) {
-        bookTag.index = bookTag.pageOffsets.length - 1;
-      }
-      if (pageController.hasClients) {
-        pageController.jumpToPage(bookTag.index);
-      }
-      notifyListeners();
-    }
-  }
-
-  prePage() {
-    var temp = bookTag.index - 1;
-    if (temp >= 0) {
-      bookTag.index = temp;
-      pageController.jumpToPage(bookTag.index);
-    } else {
-      int temp = bookTag.cur - 1;
-      if (temp < 0) {
-        Toast.show('已经是第一页');
-      } else {
-        bookTag.cur -= 1;
-        bookTag.index = 0;
-        loadChapter(0);
-      }
-    }
-  }
-
-  //nextpage
-  nextPage() {
-    log('next page${bookTag.index}');
-    var temp = bookTag.index + 1;
-    if (temp < bookTag.pageOffsets.length) {
-      bookTag.index = temp;
-      pageController.jumpToPage(bookTag.index);
-    } else {
-      int t = bookTag.cur + 1;
-      if (t == bookTag.chapters.length) {
-        Toast.show('已经是最后一页');
-      } else {
-        bookTag.cur += 1;
-        bookTag.index = 0;
-        loadChapter(1);
-      }
-    }
+    intiPageContent(bookTag.cur);
+//    notifyListeners();
   }
 
   saveData() {
-    bookTag.content = null;
     SpUtil.putString(bookInfo.Id, jsonEncode(bookTag));
     SpUtil.putDouble('fontSize', fontSize);
     SpUtil.putInt('bgIdx', bgIdx);
-  }
-
-  void onPageChange(i) {
-    log('滑动${bookTag.index}');
-    if (fix) {
-      bookTag.index = i;
-      notifyListeners();
-    } else {
-      fix = !fix;
-    }
-  }
-
-  //当前章节到前一章或后一章
-  changePage(int p) {
-    fix = !fix;
-    if (p > 0) {
-      nextPage();
-    } else {
-      prePage();
-    }
   }
 
   void tapPage(BuildContext context, TapDownDetails details) {
@@ -321,11 +384,13 @@ class ReadModel with ChangeNotifier {
     var curWid = details.localPosition.dx;
     var curHei = details.localPosition.dy;
     if (curWid > 0 && curWid < space) {
-      prePage();
-    } else if (curWid > space && curWid < 2 * space && curHei < 2*heig) {
+      pageController.previousPage(
+          duration: Duration(microseconds: 1), curve: Curves.ease);
+    } else if (curWid > space && curWid < 2 * space && curHei < 2 * heig) {
       toggleShowMenu();
     } else {
-      nextPage();
+      pageController.nextPage(
+          duration: Duration(microseconds: 1), curve: Curves.ease);
     }
   }
 
@@ -338,54 +403,20 @@ class ReadModel with ChangeNotifier {
   }
 
   downloadAll() async {
-    if (bookTag.chapters.isEmpty) {
-      getChapters().whenComplete(() async {
-        var i = 0;
-        for (; i < bookTag.chapters.length;) {
-          var id = bookTag.chapters[i].id;
-          if (!SpUtil.haveKey(id)) {
-            var url = Common.bookContentUrl + '/$id';
-            Response response = await Util(null).http().get(url);
-            String content = response.data['data']['content'].toString().trim();
-            //缓存章节
-            SpUtil.putString(id, content);
-            bookTag.chapters[i].hasContent = 2;
-            i++;
-            log(bookTag.chapters[i].name);
-          }
-        }
-      });
-      print('menu ok');
-    } else {
-      print('loop down');
-      var i = 0;
-      for (; i < bookTag.chapters.length;) {
-        var id = bookTag.chapters[i].id;
-        if (!SpUtil.haveKey(id)) {
-          var url = Common.bookContentUrl + '/$id';
-          Response response = await Util(null).http().get(url);
-          String content = response.data['data']['content'].toString().trim();
-          //缓存章节
-          SpUtil.putString(id, content);
-          bookTag.chapters[i].hasContent = 2;
-          i++;
-        }
-      }
+    if (bookTag?.chapters?.isEmpty ?? 0 == 0) {
+      await getChapters();
     }
-
-    Toast.show('${bookInfo.Name}下载完成');
+    for (var chapter in bookTag.chapters){
+      chapter.hasContent=2;
+    }
+    Toast.show("${bookInfo?.Name ?? ""}下载完成");
     saveData();
   }
 
-  nextChapter() {
-    bookTag.index = 0;
-    bookTag.cur += 1;
-    loadChapter(1);
-  }
-
-  preChapter() {
-    bookTag.index = 0;
-    bookTag.cur -= 1;
-    loadChapter(1);
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    saveData();
+    super.dispose();
   }
 }

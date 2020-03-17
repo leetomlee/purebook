@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,14 +12,21 @@ import 'package:purebook/view/BookShelf.dart';
 import 'package:purebook/view/Me.dart';
 import 'package:purebook/view/Search.dart';
 
+import 'common/common.dart';
+import 'common/util.dart';
+import 'entity/Chapter.dart';
+
 GetIt locator = GetIt.instance;
+
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SpUtil.getInstance();
-  await DirectoryUtil.getInstance();
   locator.registerSingleton(TelAndSmsService());
   runApp(Store.init(child: MyApp()));
+  await DirectoryUtil.getInstance();
+
   if (Platform.isAndroid) {
     SystemUiOverlayStyle systemUiOverlayStyle =
         SystemUiOverlayStyle(statusBarColor: Colors.transparent);
@@ -75,11 +83,9 @@ class _MainPageState extends State<MainPage> {
    */
   var _pages = [BookShelf(), Search(), Me()];
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-
       body: PageView.builder(
           //要点1
           physics: NeverScrollableScrollPhysics(),
@@ -106,6 +112,4 @@ class _MainPageState extends State<MainPage> {
       if (_tabIndex != index) _tabIndex = index;
     });
   }
-
-
 }

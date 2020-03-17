@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:purebook/event/event.dart';
 import 'package:purebook/model/ReadModel.dart';
 import 'package:purebook/store/Store.dart';
 
@@ -67,7 +66,7 @@ class _ChapterViewItem extends State<ChapterView> {
         builder: (context, ReadModel data, child) => Scaffold(
               appBar: AppBar(
                 title: Text(
-                  data.bookTag.name,
+                  data.bookTag.bookName??'',
                   style: TextStyle(fontSize: 16.0),
                 ),
                 centerTitle: true,
@@ -92,9 +91,10 @@ class _ChapterViewItem extends State<ChapterView> {
                       ),
                       selected: index == data.bookTag.cur,
                       onTap: () async {
-                        //不是卷目录
                         Navigator.of(context).pop();
-                        eventBus.fire(new ChapterEvent(index));
+                        //不是卷目录
+                        data.bookTag.cur=index;
+                        data.intiPageContent(index);
                       },
                     );
                   },

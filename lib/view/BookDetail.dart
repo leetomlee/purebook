@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:extended_image/extended_image.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/material.dart';
+import 'package:purebook/common/PicWidget.dart';
 import 'package:purebook/common/RatingBar.dart';
 import 'package:purebook/common/common.dart';
 import 'package:purebook/common/toast.dart';
@@ -76,12 +76,8 @@ class _BookDetailState extends State<BookDetail>
                         Container(
                           padding: const EdgeInsets.only(
                               left: 10.0, top: 5.0, bottom: 10.0),
-                          child: ExtendedImage.network(
+                          child: PicWidget(
                             _bookInfo.Img,
-                            height: 100,
-                            width: 80,
-                            fit: BoxFit.cover,
-                            cache: true,
                           ),
                         )
                       ],
@@ -279,12 +275,8 @@ class _BookDetailState extends State<BookDetail>
                                       Container(
                                         padding: const EdgeInsets.only(
                                             left: 10.0, top: 10.0),
-                                        child: ExtendedImage.network(
+                                        child: PicWidget(
                                           _bookInfo.SameAuthorBooks[i].Img,
-                                          height: 100,
-                                          width: 80,
-                                          fit: BoxFit.cover,
-                                          cache: true,
                                         ),
                                       )
                                     ],
@@ -426,9 +418,11 @@ class _BookDetailState extends State<BookDetail>
             case 2:
               {
                 Toast.show('开始下载...');
-                Store.value<ReadModel>(context).bookTag = new BookTag.name();
-                Store.value<ReadModel>(context).bookInfo = _bookInfo;
-                Store.value<ReadModel>(context).downloadAll();
+
+                var value = Store.value<ReadModel>(context);
+                value.bookInfo = _bookInfo;
+                value.bookTag = BookTag.bookName(_bookInfo.Name);
+                value.downloadAll();
               }
               break;
           }
@@ -436,8 +430,6 @@ class _BookDetailState extends State<BookDetail>
       ),
     );
   }
-
-  downAll() async {}
 
   @override
   // TODO: implement wantKeepAlive

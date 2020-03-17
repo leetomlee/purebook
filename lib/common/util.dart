@@ -17,11 +17,7 @@ class Util {
     var dic = DirectoryUtil.getAppDocPath();
     _dio.interceptors
         .add(InterceptorsWrapper(onRequest: (RequestOptions options) async {
-      if (options.path.startsWith(Common.bookAction)) {
-        if (!SpUtil.haveKey("auth")) {
-          this.http().reject("用户尚未登录");
-        }
-      }
+
       // Do something before request is sent
       if (_buildContext != null) {
 //        showDialog(
@@ -70,7 +66,7 @@ class Util {
     if(_buildContext!=null){
       Navigator.pop(_buildContext);
     }
-    
+
     if (e.type == DioErrorType.CONNECT_TIMEOUT) {
       // It occurs when url is opened timeout.
       Toast.show("连接超时");

@@ -104,7 +104,9 @@ class ShelfModel with ChangeNotifier {
       Toast.show('已移除出书架');
       delLocalCache([book.Id]);
     }
-    Util(null).http().get(Common.bookAction + '/${book.Id}/$action');
+    if (SpUtil.haveKey("auth")) {
+      Util(null).http().get(Common.bookAction + '/${book.Id}/$action');
+    }
     saveShelf();
     notifyListeners();
   }

@@ -87,7 +87,9 @@ class Login extends StatelessWidget {
         var shelf2 = Store.value<ShelfModel>(context).shelf;
         if (shelf2.length > 0) {
           for (var value in shelf2) {
-            Util(null).http().get(Common.bookAction + '/${value.Id}/add');
+            if (SpUtil.haveKey("auth")) {
+              Util(null).http().get(Common.bookAction + '/${value.Id}/add');
+            }
           }
         }
         Navigator.pop(context);

@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:extended_image/extended_image.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pull_to_refresh/pull_to_refresh.dart';
+import 'package:purebook/common/PicWidget.dart';
 import 'package:purebook/common/common.dart';
 import 'package:purebook/entity/Book.dart';
 import 'package:purebook/entity/BookInfo.dart';
@@ -107,12 +107,8 @@ class _BookShelfState extends State<BookShelf>
                   padding: const EdgeInsets.only(left: 10.0, top: 10.0),
                   child: Stack(
                     children: <Widget>[
-                      ExtendedImage.network(
+                      PicWidget(
                         item.Img,
-                        height: 100,
-                        width: 80,
-                        fit: BoxFit.cover,
-                        cache: true,
                       ),
                       item.NewChapterCount == 1
                           ? Container(

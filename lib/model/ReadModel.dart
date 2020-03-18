@@ -16,10 +16,6 @@ import 'package:purebook/entity/BookInfo.dart';
 import 'package:purebook/entity/BookTag.dart';
 import 'package:purebook/entity/Chapter.dart';
 import 'package:purebook/entity/ReadPage.dart';
-import 'package:purebook/store/Store.dart';
-
-import '../main.dart';
-import 'ColorModel.dart';
 
 class ReadModel with ChangeNotifier {
   BookInfo bookInfo;
@@ -75,7 +71,7 @@ class ReadModel with ChangeNotifier {
         bookTag.cur = bookTag.chapters.length - 1;
       }
       getChapters();
-      intiPageContent(bookTag.cur);
+      intiPageContent(bookTag.cur, false);
       pageController = PageController(initialPage: bookTag.index);
       value = bookTag.cur.toDouble();
       notifyListeners();
@@ -87,17 +83,17 @@ class ReadModel with ChangeNotifier {
         List v = jsonDecode(string);
         bookTag.chapters = v.map((f) => Chapter.fromJson(f)).toList();
       }
-      pageController = PageController(initialPage: 0);
+      pageController = PageController(initialPage: 1);
       getChapters().then((_) {
         if (bookInfo.CId == "-1") {
           bookTag.cur = bookTag.chapters.length - 1;
         }
-        intiPageContent(bookTag.cur);
+        intiPageContent(bookTag.cur, false);
       });
     }
   }
 
-  Future intiPageContent(int idx) async {
+  Future intiPageContent(int idx, bool jump) async {
     showGeneralDialog(
       context: context,
       barrierLabel: "",
@@ -111,21 +107,58 @@ class ReadModel with ChangeNotifier {
     prePage = await loadChapter(idx - 1);
     curPage = await loadChapter(idx);
     nextPage = await loadChapter(idx + 1);
+    Navigator.pop(context);
+
     print('refresh ok');
     fillAllContent();
     value = bookTag.cur.toDouble();
-    int ix = prePage?.pageOffsets?.length ?? 0;
-    print(ix);
-    if (pageController.hasClients) {
+    if (jump) {
+      int ix = prePage?.pageOffsets?.length ?? 0;
+      print(ix);
+
+      print("jump 1");
       pageController.jumpToPage(ix);
     }
-    Navigator.pop(context);
-    notifyListeners();
   }
 
-  toggleShowMenu() {
-    showMenu = !showMenu;
-    notifyListeners();
+  changeChapter(int idx) async {
+    bookTag.index = idx;
+    int preLen = prePage == null ? 0 : prePage.pageOffsets.length;
+    int curLen = curPage == null ? 0 : curPage.pageOffsets.length;
+    if ((idx + 1 - preLen) > (curLen)) {
+      int temp = bookTag.cur + 1;
+      if (temp >= bookTag.chapters.length) {
+        return;
+      } else {
+        bookTag.cur += 1;
+        prePage = curPage;
+        curPage = nextPage;
+        nextPage = await loadChapter(bookTag.cur + 1);
+        print("next chapter");
+        fillAllContent();
+        print("jump 2");
+        pageController.jumpToPage(prePage?.pageOffsets?.length ?? 0);
+      }
+    } else if (idx < preLen) {
+      print("pre chapter");
+      int temp = bookTag.cur - 1;
+      if (temp < 0) {
+        return;
+      } else {
+        bookTag.cur -= 1;
+        nextPage = curPage;
+        curPage = prePage;
+        prePage = await loadChapter(bookTag.cur - 1);
+        print("pre chapter");
+        fillAllContent();
+        int ix = (prePage?.pageOffsets?.length ?? 0) +
+            curPage.pageOffsets.length -
+            1;
+        print("jump 3");
+        pageController.jumpToPage(ix);
+//        notifyListeners();
+      }
+    }
   }
 
   switchBgColor(i) {
@@ -158,11 +191,19 @@ class ReadModel with ChangeNotifier {
   }
 
   Future<ReadPage> loadChapter(int idx) async {
-    if (idx < 0 || idx >= bookTag.chapters.length) {
-      print(idx);
-      return null;
-    }
     ReadPage r = new ReadPage();
+    if (idx < 0) {
+      r.chapterName = "封面";
+      r.pageOffsets = List(1);
+      r.chapterContent = "没有更多内容,AD";
+      return r;
+    } else if (idx == bookTag.chapters.length) {
+      r.chapterName = "等待作者更新";
+      r.pageOffsets = List(1);
+      r.chapterContent = "没有更多内容,AD";
+      return r;
+    }
+
     r.chapterName = bookTag.chapters[idx].name;
     String id = bookTag.chapters[idx].id;
     if (!SpUtil.haveKey(id)) {
@@ -170,7 +211,7 @@ class ReadModel with ChangeNotifier {
       print(id);
 
       Response v = await Util(null).http().get(url);
-      print('white cache success');
+
       r.chapterContent = v.data['data']['content'].toString().trim();
       //缓存章节
       SpUtil.putString(id, r.chapterContent);
@@ -191,81 +232,8 @@ class ReadModel with ChangeNotifier {
             r.chapterContent, contentH, contentW, fontSize);
       }
     }
+    print('white cache success');
     return r;
-  }
-
-  List<Widget> chapterContent(ReadPage r) {
-    List<Widget> contents = [];
-    for (var i = 0; i < r.pageOffsets.length; i++) {
-      var content = r.stringAtPageIndex(i).trim();
-      contents.add(
-        GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTapDown: (TapDownDetails details) {
-              tapPage(context, details);
-            },
-            child: Container(
-              child: Column(
-                children: <Widget>[
-                  SizedBox(height: ScreenUtil.getStatusBarH(context)),
-                  Container(
-                    height: 30,
-                    padding: EdgeInsets.only(left: 3),
-                    child: Text(
-                      r.chapterName,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Store.value<ColorModel>(context).dark
-                            ? Color.fromRGBO(225, 225, 225, 1)
-                            : Colors.black,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                        padding: EdgeInsets.only(
-                          right: 10,
-                          left: 15,
-                        ),
-                        child: Text(
-                          content,
-                          style: TextStyle(
-                            color: Store.value<ColorModel>(context).dark
-                                ? Color.fromRGBO(225, 225, 225, 1)
-                                : Colors.black,
-                            fontSize: fontSize / Screen.textScaleFactor,
-                          ),
-                        )),
-                  ),
-                  Container(
-                    height: 30,
-                    padding: EdgeInsets.only(right: 8),
-                    child: Row(
-                      children: <Widget>[
-                        Expanded(child: Container()),
-                        Text(
-                          '第${i + 1}/${r.pageOffsets.length}页',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Store.value<ColorModel>(context).dark
-                                ? Color.fromRGBO(225, 225, 225, 1)
-                                : Colors.black,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-                crossAxisAlignment: CrossAxisAlignment.start,
-              ),
-              width: double.infinity,
-              height: double.infinity,
-            )),
-      );
-    }
-    return contents;
   }
 
   fillAllContent() {
@@ -279,6 +247,7 @@ class ReadModel with ChangeNotifier {
     if (nextPage != null) {
       allContent.addAll(chapterContent(nextPage));
     }
+    notifyListeners();
   }
 
   Widget readView() {
@@ -294,45 +263,6 @@ class ReadModel with ChangeNotifier {
           (nextPage == null ? 0 : nextPage.pageOffsets.length),
       onPageChanged: (idx) => changeChapter(idx),
     );
-  }
-
-  changeChapter(int idx) async {
-    bookTag.index = idx;
-    int preLen = prePage == null ? 0 : prePage.pageOffsets.length;
-    int curLen = curPage == null ? 0 : curPage.pageOffsets.length;
-    if ((idx + 1 - preLen) > (curLen)) {
-      int temp = bookTag.cur + 1;
-      if (temp >= bookTag.chapters.length) {
-        return;
-      } else {
-        bookTag.cur += 1;
-        prePage = curPage;
-        curPage = nextPage;
-        nextPage = await loadChapter(bookTag.cur + 1);
-        print("next chapter");
-        fillAllContent();
-        pageController.jumpToPage(prePage.pageOffsets.length);
-        print(prePage.chapterName + curPage.chapterName + nextPage.chapterName);
-      }
-    } else if (idx < preLen) {
-      print("pre chapter");
-      int temp = bookTag.cur - 1;
-      if (temp < 0) {
-        return;
-      } else {
-        bookTag.cur -= 1;
-        nextPage = curPage;
-        curPage = prePage;
-        prePage = await loadChapter(bookTag.cur - 1);
-        print("pre chapter");
-        fillAllContent();
-        int ix =
-            prePage?.pageOffsets?.length ?? 0 + curPage.pageOffsets.length - 1;
-        print(ix);
-        pageController.jumpToPage(ix);
-//        notifyListeners();
-      }
-    }
   }
 
   justDown(start, end) async {
@@ -366,8 +296,13 @@ class ReadModel with ChangeNotifier {
     }
     bookTag.index = 0;
     SpUtil.remove('pages${bookTag.chapters[bookTag.cur].id}');
-    intiPageContent(bookTag.cur);
+    intiPageContent(bookTag.cur, true);
 //    notifyListeners();
+  }
+
+  toggleShowMenu() {
+    showMenu = !showMenu;
+    notifyListeners();
   }
 
   saveData() {
@@ -406,8 +341,8 @@ class ReadModel with ChangeNotifier {
     if (bookTag?.chapters?.isEmpty ?? 0 == 0) {
       await getChapters();
     }
-    for (var chapter in bookTag.chapters){
-      chapter.hasContent=2;
+    for (var chapter in bookTag.chapters) {
+      chapter.hasContent = 2;
     }
     Toast.show("${bookInfo?.Name ?? ""}下载完成");
     saveData();
@@ -418,5 +353,79 @@ class ReadModel with ChangeNotifier {
     // TODO: implement dispose
     saveData();
     super.dispose();
+  }
+
+  List<Widget> chapterContent(ReadPage r) {
+    List<Widget> contents = [];
+    for (var i = 0; i < r.pageOffsets.length; i++) {
+      var content = r.stringAtPageIndex(i).trim();
+      contents.add(
+        GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTapDown: (TapDownDetails details) {
+              tapPage(context, details);
+            },
+            child: Container(
+              child: Column(
+                children: <Widget>[
+                  SizedBox(height: ScreenUtil.getStatusBarH(context)),
+                  Container(
+                    height: 30,
+                    padding: EdgeInsets.only(left: 3),
+                    child: Text(
+                      r.chapterName,
+                      style: TextStyle(
+                        fontSize: 16,
+//                        color: Store.value<ColorModel>(context).dark
+//                            ? Color.fromRGBO(225, 225, 225, 1)
+//                            : Colors.black,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                        padding: EdgeInsets.only(
+                          right: 10,
+                          left: 15,
+                        ),
+                        child: Text(
+                          content,
+                          style: TextStyle(
+//                            color: Store.value<ColorModel>(context).dark
+//                                ? Color.fromRGBO(225, 225, 225, 1)
+//                                : Colors.black,
+                            fontSize: fontSize / Screen.textScaleFactor,
+                          ),
+                        )),
+                  ),
+                  Container(
+                    height: 30,
+                    padding: EdgeInsets.only(right: 8),
+                    child: Row(
+                      children: <Widget>[
+                        Expanded(child: Container()),
+                        Text(
+                          '第${i + 1}/${r.pageOffsets.length}页',
+                          style: TextStyle(
+                            fontSize: 13,
+//                            color: Store.value<ColorModel>(context).dark
+//                                ? Color.fromRGBO(225, 225, 225, 1)
+//                                : Colors.black,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+              width: double.infinity,
+              height: double.infinity,
+            )),
+      );
+    }
+    return contents;
   }
 }

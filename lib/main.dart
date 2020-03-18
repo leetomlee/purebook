@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:flustars/flustars.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -12,13 +11,7 @@ import 'package:purebook/view/BookShelf.dart';
 import 'package:purebook/view/Me.dart';
 import 'package:purebook/view/Search.dart';
 
-import 'common/common.dart';
-import 'common/util.dart';
-import 'entity/Chapter.dart';
-
 GetIt locator = GetIt.instance;
-
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,8 +30,8 @@ void main() async {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+
     return MaterialApp(
-      theme: Store.value<ColorModel>(context).theme,
       title: '清阅',
       home: MainPage(),
     );
@@ -85,9 +78,15 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    final Brightness brightnessValue =
+        MediaQuery.of(context).platformBrightness;
+    bool isDark = brightnessValue == Brightness.dark;
+    var value = Store.value<ColorModel>(context);
+    value.dark = isDark;
+    return Theme(child: Scaffold(
+
       body: PageView.builder(
-          //要点1
+        //要点1
           physics: NeverScrollableScrollPhysics(),
           //禁止页面左右滑动切换
           controller: _pageController,
@@ -104,7 +103,7 @@ class _MainPageState extends State<MainPage> {
           _pageController.jumpToPage(index);
         },
       ),
-    );
+    ),data: value.theme,);
   }
 
   void _pageChanged(int index) {

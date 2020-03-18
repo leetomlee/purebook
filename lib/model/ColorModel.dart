@@ -3,14 +3,17 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class ColorModel with ChangeNotifier {
-  bool dark = SpUtil.getBool('dark');
+  bool dark;
   List<Color> skins = Colors.accents;
   int idx = SpUtil.getInt('skin');
   ThemeData _theme;
 
   ThemeData get theme {
-    _theme = SpUtil.getBool('dark')
-        ? ThemeData.dark()
+    if (SpUtil.haveKey('dark')) {
+      dark = SpUtil.getBool("dark");
+    }
+    _theme = dark
+        ? ThemeData.dark().copyWith(primaryColor: null)
         : ThemeData.light().copyWith(primaryColor: skins[idx]);
     return _theme;
   }
@@ -30,7 +33,10 @@ class ColorModel with ChangeNotifier {
               i == idx
                   ? Align(
                       alignment: Alignment.topRight,
-                      child: ImageIcon(AssetImage('images/pick.png'),color: Colors.white,),
+                      child: ImageIcon(
+                        AssetImage('images/pick.png'),
+                        color: Colors.white,
+                      ),
                     )
                   : Container()
             ],

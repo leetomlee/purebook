@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:purebook/common/common.dart';
 import 'package:purebook/common/util.dart';
+import 'package:purebook/model/ColorModel.dart';
+import 'package:purebook/store/Store.dart';
 
 class Register extends StatefulWidget {
   @override
@@ -20,7 +22,7 @@ class _RegisterState extends State<Register> {
 
   @override
   Widget build(BuildContext context) {
-    return Material(child: Container(
+    return Theme(child: Material(child: Container(
       alignment: Alignment.center,
       child: new ListView(
         shrinkWrap: true,
@@ -97,7 +99,7 @@ class _RegisterState extends State<Register> {
           )
         ],
       ),
-    ),);
+    ),),data: Store.value<ColorModel>(context).theme,);
   }
 
   register() async {

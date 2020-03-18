@@ -2,6 +2,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:purebook/common/common.dart';
 import 'package:purebook/common/util.dart';
+import 'package:purebook/model/ColorModel.dart';
+import 'package:purebook/store/Store.dart';
 
 class ForgetPass extends StatefulWidget {
   @override
@@ -20,7 +22,7 @@ class _ForgetPassState extends State<ForgetPass> {
 
   @override
   Widget build(BuildContext context) {
-    return  Material(child: Container(
+    return  Theme(child: Material(child: Container(
       alignment: Alignment.center,
       child: new ListView(
         shrinkWrap: true,
@@ -98,7 +100,7 @@ class _ForgetPassState extends State<ForgetPass> {
           )
         ],
       ),
-    ),);
+    ),),data: Store.value<ColorModel>(context).theme,);
   }
 
   register() async {

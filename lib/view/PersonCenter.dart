@@ -5,10 +5,14 @@ import 'package:purebook/common/common.dart';
 import 'package:purebook/common/toast.dart';
 import 'package:purebook/common/util.dart';
 import 'package:purebook/event/event.dart';
+import 'package:purebook/model/ColorModel.dart';
 import 'package:purebook/model/ShelfModel.dart';
 import 'package:purebook/store/Store.dart';
 import 'package:purebook/view/Forgetpass.dart';
 import 'package:purebook/view/Register.dart';
+
+import '../main.dart';
+import 'Me.dart';
 
 class PersonCenter extends StatefulWidget {
   @override
@@ -92,7 +96,8 @@ class Login extends StatelessWidget {
             }
           }
         }
-        Navigator.pop(context);
+        Navigator.of(context).push(
+            MaterialPageRoute(builder: (BuildContext context) => MainPage()));
       }
     }
 
@@ -138,7 +143,7 @@ class Login extends StatelessWidget {
 
     final forgotLabel = FlatButton(
       child: Text(
-        '忘记密码?',
+        '忘记密码',
       ),
       onPressed: () {
         Navigator.of(context).push(new MaterialPageRoute(
@@ -176,10 +181,10 @@ class Login extends StatelessWidget {
     );
     // TODO: implement build
 
-    return Material(
+    return Theme(child: Material(
       child: Container(
         child: loginBody,
       ),
-    );
+    ),data: Store.value<ColorModel>(context).theme,);
   }
 }

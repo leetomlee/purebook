@@ -175,7 +175,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                         BookInfo bookInfo =
                                             BookInfo.fromJson(d);
 
-                                        Navigator.of(context).push(
+                                        Navigator.of(context).pushReplacement(
                                             MaterialPageRoute(
                                                 builder:
                                                     (BuildContext context) =>
@@ -196,6 +196,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                   ),
                                   onTap: () {
                                     readModel.toggleShowMenu();
+
                                     if (readModel.font) {
                                       readModel.reCalcPages();
                                     }
@@ -221,7 +222,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                           onTap: () {
                                             readModel.bookTag.cur -= 1;
                                             readModel.intiPageContent(
-                                                readModel.bookTag.cur);
+                                                readModel.bookTag.cur, true);
                                           },
                                         ),
                                         Expanded(
@@ -241,7 +242,8 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                                 readModel.value =
                                                     temp.toDouble();
                                                 readModel.intiPageContent(
-                                                    readModel.bookTag.cur);
+                                                    readModel.bookTag.cur,
+                                                    true);
                                               },
                                               label:
                                                   '${readModel.bookTag.chapters[readModel.bookTag.cur].name} ',
@@ -261,7 +263,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                                           onTap: () {
                                             readModel.bookTag.cur += 1;
                                             readModel.intiPageContent(
-                                                readModel.bookTag.cur);
+                                                readModel.bookTag.cur, true);
                                           },
                                         ),
                                       ],
@@ -304,6 +306,7 @@ class _ReadBookState extends State<ReadBook> with WidgetsBindingObserver {
                     ),
                     onTap: () {
                       Store.value<ColorModel>(context).switchModel();
+                      setState(() {});
                       readModel.toggleShowMenu();
                     }),
                 buildBottomItem('缓存', Icons.cloud_download),

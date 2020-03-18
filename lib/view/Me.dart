@@ -12,12 +12,13 @@ import 'PersonCenter.dart';
 
 class Me extends StatelessWidget {
   Widget getItem(imagIcon, text, func) {
-    return ListTile(
+    return Card(
+        child: ListTile(
       onTap: func,
       leading: imagIcon,
       title: Text(text),
       trailing: Icon(Icons.keyboard_arrow_right),
-    );
+    ));
   }
 
   @override
@@ -25,74 +26,60 @@ class Me extends StatelessWidget {
     // TODO: implement build
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(140),
+        preferredSize: Size.fromHeight(100),
         child: Container(
-          child: Column(
-            children: <Widget>[
-              SizedBox(
-                height: ScreenUtil.getStatusBarH(context) + 10,
-              ),
-              Container(
-                child: GestureDetector(
-                  child: Container(
-                    child: Center(
-                      child: Column(
-                        children: <Widget>[
-                          Container(
-                            height: 80,
-                            width: 80,
-                            child: CircleAvatar(
-                              backgroundImage: AssetImage("images/fu.png"),
-                            ),
-                          ),
-                          SizedBox(
-                            height: 2,
-                          ),
-                          SpUtil.haveKey('login')
-                              ? Center(
-                                  child: Padding(
-                                    child: Text(
-                                      SpUtil.getString('username'),
-                                    ),
-                                    padding: EdgeInsets.only(top: 10),
-                                  ),
-                                )
-                              : FlatButton(
-                                  color: Store.value<ColorModel>(context).dark
-                                      ? Colors.white
-                                      : Colors.black12,
-                                  onPressed: () {
-                                    if (!SpUtil.haveKey('email')) {
-                                      Navigator.of(context).push(
-                                          MaterialPageRoute(
-                                              builder: (BuildContext context) =>
-                                                  Login()));
-                                    }
-                                  },
-                                  child: Text('登录',
-                                      style: TextStyle(
-                                          color:
-                                              !Store.value<ColorModel>(context)
-                                                      .dark
-                                                  ? Colors.white
-                                                  : Colors.black45)),
-                                  shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.all(
-                                          Radius.circular(20.0))),
-                                )
-                        ],
+          child: GestureDetector(
+            child: Row(
+              children: <Widget>[
+                SizedBox(
+                  width: 20,
+                ),
+                GestureDetector(
+                  child: Padding(
+                    child: Container(
+                      height: 80,
+                      width: 80,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.white,
+                        backgroundImage: AssetImage(SpUtil.haveKey("login")
+                            ? "images/fu.png"
+                            : "images/account.png"),
                       ),
                     ),
+                    padding:
+                        EdgeInsets.only(top: ScreenUtil.getStatusBarH(context)),
                   ),
                   onTap: () {
-                    if (!SpUtil.haveKey('email')) {
+                    if (SpUtil.haveKey("login")) {
+                      return;
+                    } else {
                       Navigator.of(context).push(MaterialPageRoute(
                           builder: (BuildContext context) => Login()));
                     }
                   },
                 ),
-              ),
-            ],
+                SizedBox(
+                  width: 10,
+                ),
+                Center(
+                  child: Padding(
+                    child: Text(
+                      SpUtil.haveKey("login")
+                          ? SpUtil.getString('username')
+                          : "登陆/注册",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    padding: EdgeInsets.only(top: 30),
+                  ),
+                )
+              ],
+            ),
+            onTap: () {
+              if (!SpUtil.haveKey('email')) {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (BuildContext context) => Login()));
+              }
+            },
           ),
           color: Theme.of(context).primaryColor,
         ),
@@ -242,22 +229,19 @@ class Me extends StatelessWidget {
                           ));
                 },
               ),
-              SpUtil.haveKey('login')
-                  ? Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: MaterialButton(
-                            child: Text(
-                              '退出登录',
-                            ),
-                            onPressed: () {
-                              Store.value<ShelfModel>(context).dropAccountOut();
-                              eventBus.fire(new BooksEvent([]));
-                            },
-                          ),
-                        )
-                      ],
-                    )
+              SpUtil.haveKey("login")
+                  ?  GestureDetector(
+                        child: Card(child: Container(
+                          height: 50,
+                          child: Text("退出登录"),
+                          alignment: Alignment.center,
+                        ),),
+                        onTap: () {
+                          Store.value<ShelfModel>(context).dropAccountOut();
+                          eventBus.fire(new BooksEvent([]));
+                        },
+                      )
+
                   : Container(),
             ],
           ),
@@ -272,23 +256,23 @@ class Skin extends StatelessWidget {
   Widget build(BuildContext context) {
     // TODO: implement build
     return Store.connect<ColorModel>(
-        builder: (context, ColorModel data, child) => Scaffold(
-              body: Padding(
-                padding: EdgeInsets.only(
-                    left: 15,
-                    right: 15,
-                    top: ScreenUtil.getStatusBarH(context) + 10),
-                child: Wrap(
-                  spacing: 10.0,
-                  runSpacing: 12.0,
-                  children: data.getSkins(
-                      ((ScreenUtil.getScreenW(context) - 40) / 2).toDouble(),
-                      (ScreenUtil.getScreenW(context) - 40) /
-                          2 /
-                          5 *
-                          2.toDouble()),
-                ),
-              ),
-            ));
+        builder: (context, ColorModel data, child) => Theme(child: Scaffold(
+          body: Padding(
+            padding: EdgeInsets.only(
+                left: 15,
+                right: 15,
+                top: ScreenUtil.getStatusBarH(context) + 10),
+            child: Wrap(
+              spacing: 10.0,
+              runSpacing: 12.0,
+              children: data.getSkins(
+                  ((ScreenUtil.getScreenW(context) - 40) / 2).toDouble(),
+                  (ScreenUtil.getScreenW(context) - 40) /
+                      2 /
+                      5 *
+                      2.toDouble()),
+            ),
+          ),
+        ),data: data.theme,));
   }
 }
